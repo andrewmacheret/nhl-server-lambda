@@ -82,7 +82,6 @@ class CssTest extends Test {
   }
 
   test(expected, actual) {
-    console.log(expected, actual, JSON.stringify(actual), expected.test(JSON.stringify(actual)));
     return expected.test(JSON.stringify(actual))
   }
 
