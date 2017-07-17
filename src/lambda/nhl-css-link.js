@@ -11,7 +11,7 @@ exports.loadCssUrl = () => new Promise((resolve, reject) => {
       const siteCoreBuildVersionDirectory = $(`meta[name='siteCoreBuildVersionDirectory']`).attr('content');
       
       const cssUrl = `https:${siteCoreBuildPath}/site-core/${siteCoreBuildVersionDirectory}styles/nhl-logos.css.gz`;
-      console.log(`found url: ${cssUrl}`);
+      //console.log(`found url: ${cssUrl}`);
       resolve({cssUrl});
 
     }).catch(reject);
