@@ -2,3 +2,4 @@ lambda-build.zip
 .env
 .DS_Store
 node_modules/
+src/lambda/nhl-*.js

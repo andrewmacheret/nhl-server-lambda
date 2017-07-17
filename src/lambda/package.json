@@ -4,6 +4,7 @@
   "description": "A lambda server that tells me what games my team has playing today",
   "main": "index.js",
   "scripts": {
+    "build": "./node_modules/.bin/babel *.es7 -d .",
     "test": "node test.js"
   },
   "repository": {
@@ -16,6 +17,9 @@
     "url": "https://github.com/andrewmacheret/nhl-server-lambda/issues"
   },
   "homepage": "https://github.com/andrewmacheret/nhl-server-lambda#readme",
+  "babel": {
+    "plugins": ["transform-async-to-generator"]
+  },
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
     "moment": "^2.18.1",
@@ -23,5 +27,9 @@
     "process": "^0.11.10",
     "request": "^2.81.0",
     "request-promise-native": "^1.0.4"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-plugin-transform-async-to-generator": "^6.24.1"
   }
 }
