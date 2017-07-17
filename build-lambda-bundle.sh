@@ -9,6 +9,9 @@ cd lambda-build
 echo "Running npm install ..."
 npm install
 
+echo "Running npm build ..."
+npm run-script build
+
 echo 'Testing ...'
 npm test || {
  echo 'Tests failed, cleaning up ...'

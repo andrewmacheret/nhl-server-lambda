@@ -1,0 +1,15 @@
+const request = require('request-promise-native');
+const cheerio = require('cheerio');
+
+const nhlScheduleUrl = 'https://www.nhl.com/sharks/schedule';
+
+exports.loadCssUrl = async () => {
+  console.log(`parsing page for css url: ${nhlScheduleUrl}`);
+  const $ = await request({uri: nhlScheduleUrl, transform: (body) => cheerio.load(body)})
+  const siteCoreBuildPath = $(`meta[name='siteCoreBuildPath']`).attr('content');
+  const siteCoreBuildVersionDirectory = $(`meta[name='siteCoreBuildVersionDirectory']`).attr('content');
+  
+  const cssUrl = `https:${siteCoreBuildPath}/site-core/${siteCoreBuildVersionDirectory}styles/nhl-logos.css.gz`;
+  //console.log(`found url: ${cssUrl}`);
+  return { cssUrl };
+}
