@@ -1,0 +1,27 @@
+{
+  "name": "nhl-server",
+  "version": "1.0.0",
+  "description": "A lambda server that tells me what games my team has playing today",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andrewmacheret/nhl-server-lambda.git"
+  },
+  "author": "Andrew Macheret",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/andrewmacheret/nhl-server-lambda/issues"
+  },
+  "homepage": "https://github.com/andrewmacheret/nhl-server-lambda#readme",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "moment": "^2.18.1",
+    "moment-timezone": "^0.5.13",
+    "process": "^0.11.10",
+    "request": "^2.81.0",
+    "request-promise-native": "^1.0.4"
+  }
+}
