@@ -12,7 +12,7 @@ const cacheSchedules = {};
 async function callNhlApi(path) {
   const url = nhlApiUrl + path;
   console.log(`calling url: ${url}`);
-  return await request({uri: url, json: true});
+  return await request({uri: url, json: true, timeout: 2000});
 }
 
 async function loadTeams() {
@@ -30,12 +30,11 @@ async function loadSchedule(date, teamId, callback) {
 }
 
 async function myTeamToday(team, date) {
-
   if (!team) {
-    return reject('team must be specified');
+    throw `'team' must be specified`;
   }
   if (!team.match(/^[a-z\ ]+$/)) {
-    return reject(`team must be a lower case set of words, such as "sharks" or "maple leafs", was: "${teamId}"`);
+    throw `team must be a lower case set of words, such as 'sharks' or 'maple leafs', was: '${team}'`;
   }
   
   if (!date) {
@@ -43,10 +42,9 @@ async function myTeamToday(team, date) {
     date = moment.tz('America/Los_Angeles').format('YYYY-MM-DD');
   }
   if (!date.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)) {
-    return reject(`date must be in format YYYY-MM-DD: "${date}"`);
+    throw `date must be in format YYYY-MM-DD, was: '${date}'`;
   }
 
-  console.log('load teams ...');
   const nhlTeams = await loadTeams();
 
   const nhlTeamNameToId = Object.assign({}, ...nhlTeams.teams.map((nhlTeam) => ({
@@ -58,10 +56,9 @@ async function myTeamToday(team, date) {
 
   const teamId = nhlTeamNameToId[team];
   if (!teamId) {
-    throw `team not found: "${team}"`;
+    throw `team not found: '${team}'`;
   }
 
-  console.log(`load schedule for date=${date} teamId=${teamId} ...`);
   const nhlSchedule = await loadSchedule(date, teamId);
 
   const games = ((nhlSchedule.dates[0] || {}).games || []).map((item) => {
@@ -95,7 +92,7 @@ async function myTeamToday(team, date) {
   return {games};
 }
 
-exports.handler = async (event, context, callback) => {
+exports.api = async (event, context) => {
   console.log('called with event:', event);
 
   const apis = {
@@ -107,9 +104,15 @@ exports.handler = async (event, context, callback) => {
   try {
     const data = await (apis[event.action] || apiNotFound)();
     console.log('RESOLVE:', JSON.stringify(data));
-    callback(null, data);
+    return data;
   } catch(err) {
     console.log('REJECT:', err);
-    callback(JSON.stringify(err));
+    throw typeof(err) === 'string' ? err : err.message || JSON.stringify(err);
   }
+};
+
+exports.handler = (event, context, callback) => {
+  exports.api(event, context)
+    .then((data) => callback(null, data))
+    .catch((err) => callback(err));
 };

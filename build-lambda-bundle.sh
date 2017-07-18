@@ -10,7 +10,7 @@ echo "Running npm install ..."
 npm install
 
 echo "Running npm build ..."
-npm run-script build
+npm run build
 
 echo 'Testing ...'
 npm test || {

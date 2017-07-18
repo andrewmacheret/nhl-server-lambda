@@ -5,7 +5,7 @@ const nhlScheduleUrl = 'https://www.nhl.com/sharks/schedule';
 
 exports.loadCssUrl = async () => {
   console.log(`parsing page for css url: ${nhlScheduleUrl}`);
-  const $ = await request({uri: nhlScheduleUrl, transform: (body) => cheerio.load(body)})
+  const $ = await request({uri: nhlScheduleUrl, timeout: 2000, transform: (body) => cheerio.load(body)})
   const siteCoreBuildPath = $(`meta[name='siteCoreBuildPath']`).attr('content');
   const siteCoreBuildVersionDirectory = $(`meta[name='siteCoreBuildVersionDirectory']`).attr('content');
   
