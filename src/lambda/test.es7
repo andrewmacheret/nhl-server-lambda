@@ -1,0 +1,151 @@
+const sys = require('process');
+const index = require('./nhl-api');
+
+class Test {
+  constructor(options) {
+    this._args = options.args;
+    this._expected = options.expected;
+    this._error = options.error;
+
+    Test.incTestCount();
+    this._test_number = Test.testCount;
+  }
+
+  async run(fn) {
+    console.log(`TEST #${this._test_number}/${Test.testCount} STARTED`);
+
+    let error, actual;
+    try {
+      actual = await fn(...this._args);
+    } catch(err) {
+      error = err;
+    }
+    if (this._error) {
+      [ error, actual ] = [ actual, error ];
+    }
+
+    let testMessage;
+    if (error) {
+      testMessage = 'ERROR: ' + error;
+    } else if (!this.test(this._expected, actual)) {
+      testMessage = 'FAILURE: ' + this.failureMessage(this._expected, actual);
+    } else {
+      testMessage = 'PASS'
+      Test.incSuccessCount();
+    }
+
+    console.log(`TEST #${this._test_number}/${Test.testCount} FINISHED - ${testMessage}`);
+  }
+
+  static async runAllParallel(allTests) {
+    const promises = [];
+    for (const fnTests of allTests) {
+      for (const test of fnTests.tests) {
+        promises.push(test.run(fnTests.fn));
+      }
+    }
+    await Promise.all(promises);
+
+    console.log(`${Test.successCount} of ${Test.testCount} tests passed`);
+    process.exit(Test.successCount !== Test.testCount ? 1 : 0);
+  }
+
+  static async runAll(allTests) {
+    for (const fnTests of allTests) {
+      for (const test of fnTests.tests) {
+        await test.run(fnTests.fn);
+      }
+    }
+
+    console.log(`${Test.successCount} of ${Test.testCount} tests passed`);
+    process.exit(Test.successCount !== Test.testCount ? 1 : 0);
+  }
+
+  test(expected, actual) {
+    if (expected instanceof RegExp) {
+      return expected.test(JSON.stringify(actual));
+    } else {
+      return JSON.stringify(expected) === JSON.stringify(actual);
+    }
+  }
+
+  failureMessage(expected, actual) {
+    return `
+  expected: ${expected instanceof RegExp ? expected : JSON.stringify(expected)}
+  !==
+  actual:   ${JSON.stringify(actual)}
+`
+  }
+
+  static incTestCount() {
+    Test._testCount = Test.testCount + 1;
+  }
+
+  static incSuccessCount() {
+    Test._successCount = Test.successCount + 1;
+  }
+
+  static get testCount() { return Test._testCount || 0; }
+
+  static get successCount() { return Test._successCount || 0; }
+}
+
+Test.runAll([
+  {
+    fn: index.api,
+    tests: [
+      new Test({
+        args: [ { action: 'myTeamToday', team: 'sharks', date: '2017-02-11' }, {} ],
+        expected: { games: [
+          { title: 'San Jose Sharks at Philadelphia Flyers',
+            home: { id: 4, name: 'Philadelphia Flyers' },
+            away: { id: 28, name: 'San Jose Sharks' },
+            isHome: false,
+            gameDate: '2017-02-11T18:00:00Z',
+            broadcasts: ['NHLN-US','CSN-PH','CSN-CA'] } ] },
+        error: false
+      }),
+      new Test({
+        args: [ { action: 'myTeamToday', team: 'sharks', date: '2016-11-21' }, {} ],
+        expected: { games: [
+          { title: 'San Jose Sharks vs New Jersey Devils',
+            home: { id: 28, name: 'San Jose Sharks' },
+            away: { id: 1, name: 'New Jersey Devils' },
+            isHome: true,
+            gameDate: '2016-11-22T03:30:00Z',
+            broadcasts: ['CSN-CA','MSG+'] } ] },
+        error: false
+      }),
+      new Test({
+        args: [ { action: 'myTeamToday' }, {} ],
+        expected: `'team' must be specified`,
+        error: true
+      }),
+      new Test({
+        args: [ { action: 'myTeamToday', team: 'SHARKS' }, {} ],
+        expected: `team must be a lower case set of words, such as 'sharks' or 'maple leafs', was: 'SHARKS'`,
+        error: true
+      }),
+      new Test({
+        args: [ { action: 'myTeamToday', team: 'this team doesnt exist' }, {} ],
+        expected: `team not found: 'this team doesnt exist'`,
+        error: true
+      }),
+      new Test({
+        args: [ { action: 'myTeamToday', team: 'sharks', date: 'YYYYOURMOM' }, {} ],
+        expected: `date must be in format YYYY-MM-DD, was: 'YYYYOURMOM'`,
+        error: true
+      }),
+      new Test({
+        args: [ { }, {} ],
+        expected: `Unsupported or undefined action: undefined`,
+        error: true
+      }),
+      new Test({
+        args: [ { action: 'cssLink' }, {} ],
+        expected: /^ ?\{ ?"cssUrl": ?"https:\/\/www-league\.nhlstatic\.com\/builds\/site-core\/[a-z0-9]{40}_[0-9]+\/styles\/nhl-logos\.css\.gz" ?\} ?$/,
+        error: false
+      })
+    ]
+  }
+]);
