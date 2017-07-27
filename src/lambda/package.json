@@ -4,7 +4,7 @@
   "description": "A lambda server that tells me what games my team has playing today",
   "main": "index.js",
   "scripts": {
-    "build": "./node_modules/.bin/babel *.es7 -d .",
+    "build": "./node_modules/.bin/babel *.es8 -d .",
     "test": "node test.js"
   },
   "repository": {
