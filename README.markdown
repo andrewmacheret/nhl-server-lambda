@@ -18,7 +18,9 @@ Installation requires a UNIX environment with:
 
 Run aws-setup.sh to install AWS command line tools and create an AWS Lambda Function. (*It will run `aws configure`, so have an key id and access key ready*)
 
-Run aws-update-lambda.sh after further changes to source code to update the AWS Lambda Functon with the new source code.
+Run aws-update-lambda.sh after further changes to source code to update the AWS Lambda Functon with the new source code. Pushes to `master` do this automatically through GitHub Actions (see `.github/workflows/deploy.yml`).
+
+Run tests with `cd src/lambda && npm test`. They call the real NHL API at `api-web.nhle.com`.
 
 You may also want to:
 1. Create an API gateway with AWS API Gateway, and connect it to the AWS Lambda Function
