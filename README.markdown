@@ -6,6 +6,13 @@ Back-end server for [andrewmacheret/nhl-client](https://github.com/andrewmachere
 
 See [andrewmacheret/nhl-server](https://github.com/andrewmacheret/nhl-server) for the previous version that runs on Docker.
 
+## API
+
+- `GET /games?team=sharks&date=2026-11-21` returns that day's games for the team (with scores once they start), the team's record, its next game, and a list of all teams. `team` can be a name, city or abbreviation, like `maple leafs`, `toronto` or `tor`. `date` defaults to today in Pacific time.
+- `GET /calendar?team=sharks` returns an iCalendar feed of the team's games from last season and this season. Subscribe to it with `webcal://nhl.andrewmacheret.com/calendar?team=sharks`.
+
+In API Gateway, `/games` uses a mapping template that turns the query string into the Lambda event. `/calendar` uses a Lambda proxy integration instead, so the Lambda can return the `text/calendar` content type itself.
+
 ## Development
 
 Run tests with `cd src/lambda && npm test` (needs Node.js 24). They call the real NHL API.
