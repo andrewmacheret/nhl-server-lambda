@@ -7,8 +7,18 @@ test('away game', async () => {
   assert.deepStrictEqual(await api({ action: 'myTeamToday', team: 'sharks', date: '2017-02-11' }), {
     games: [{
       title: 'San Jose Sharks at Philadelphia Flyers',
-      home: { id: 4, name: 'Philadelphia Flyers', logo: 'https://assets.nhle.com/logos/nhl/svg/PHI_19992000-20222023_light.svg' },
-      away: { id: 28, name: 'San Jose Sharks', logo: 'https://assets.nhle.com/logos/nhl/svg/SJS_20082009-20232024_light.svg' },
+      home: {
+        id: 4,
+        name: 'Philadelphia Flyers',
+        logo: 'https://assets.nhle.com/logos/nhl/svg/PHI_19992000-20222023_light.svg',
+        darkLogo: 'https://assets.nhle.com/logos/nhl/svg/PHI_19992000-20222023_dark.svg'
+      },
+      away: {
+        id: 28,
+        name: 'San Jose Sharks',
+        logo: 'https://assets.nhle.com/logos/nhl/svg/SJS_20082009-20232024_light.svg',
+        darkLogo: 'https://assets.nhle.com/logos/nhl/svg/SJS_20082009-20232024_dark.svg'
+      },
       isHome: false,
       gameDate: '2017-02-11T18:00:00Z',
       broadcasts: ['NHLN-US', 'CSN-CA', 'CSN-PH']
