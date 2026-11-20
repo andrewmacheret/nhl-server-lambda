@@ -39,7 +39,8 @@ function toTeam(team) {
   return {
     id: team.id,
     name: `${team.placeName.default} ${team.commonName.default}`,
-    logo: team.logo
+    logo: team.logo,
+    darkLogo: team.darkLogo
   };
 }
 
