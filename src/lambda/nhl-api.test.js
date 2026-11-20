@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { api } = require('./nhl-api');
+const { api, handler } = require('./nhl-api');
 
 // These call the real NHL API
 test('away game', async () => {
@@ -62,3 +62,13 @@ for (const [event, message] of errorCases) {
     await assert.rejects(api(event), { message });
   });
 }
+
+test('handler prefixes bad input with 400', async () => {
+  await assert.rejects(handler({ action: 'myTeamToday', team: 'nope' }), { message: `400: team not found: 'nope'` });
+});
+
+test('handler prefixes NHL API failures with 502', async (t) => {
+  t.mock.method(global, 'fetch', async () => ({ ok: false, status: 503 }));
+  await assert.rejects(handler({ action: 'myTeamToday', team: 'sharks', date: '1999-01-01' }),
+    { message: /^502: NHL API returned 503 for / });
+});
