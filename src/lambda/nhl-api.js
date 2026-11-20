@@ -5,6 +5,9 @@ const scheduleTtlMs = 10 * 60 * 1000;
 
 const cache = {};
 
+// Errors caused by bad input, sent back as a 400 instead of a 502
+class BadRequestError extends Error {}
+
 async function callNhlApi(path, ttlMs) {
   const cached = cache[path];
   if (cached && Date.now() - cached.time < ttlMs) return cached.data;
@@ -46,10 +49,10 @@ function toTeam(team) {
 
 async function myTeamToday(team, date) {
   if (!team) {
-    throw new Error(`'team' must be specified`);
+    throw new BadRequestError(`'team' must be specified`);
   }
   if (!team.match(/^[a-z ]+$/)) {
-    throw new Error(`team must be a lower case set of words, such as 'sharks' or 'maple leafs', was: '${team}'`);
+    throw new BadRequestError(`team must be a lower case set of words, such as 'sharks' or 'maple leafs', was: '${team}'`);
   }
 
   if (!date) {
@@ -57,13 +60,13 @@ async function myTeamToday(team, date) {
     date = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date());
   }
   if (!date.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)) {
-    throw new Error(`date must be in format YYYY-MM-DD, was: '${date}'`);
+    throw new BadRequestError(`date must be in format YYYY-MM-DD, was: '${date}'`);
   }
 
   const teams = await loadTeams();
   const abbrev = teams[team];
   if (!abbrev) {
-    throw new Error(`team not found: '${team}'`);
+    throw new BadRequestError(`team not found: '${team}'`);
   }
 
   const games = (await loadGames(date))
@@ -92,7 +95,7 @@ exports.api = async (event) => {
   };
   const api = apis[event.action];
   if (!api) {
-    throw new Error(`Unsupported or undefined action: ${event.action}`);
+    throw new BadRequestError(`Unsupported or undefined action: ${event.action}`);
   }
 
   try {
@@ -105,4 +108,13 @@ exports.api = async (event) => {
   }
 };
 
-exports.handler = exports.api;
+// API Gateway picks the HTTP status from the "400: " or "502: " prefix
+// and sends back only the message, without the stack trace
+exports.handler = async (event) => {
+  try {
+    return await exports.api(event);
+  } catch (err) {
+    const status = err instanceof BadRequestError ? 400 : 502;
+    throw new Error(`${status}: ${err.message}`);
+  }
+};
