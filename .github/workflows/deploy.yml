@@ -9,12 +9,16 @@ on:
 permissions:
   contents: read
 
+env:
+  FUNCTION_NAME: NHLServer
+  RUNTIME: nodejs24.x
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
       - run: npm test
@@ -28,15 +32,25 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      - uses: aws-actions/configure-aws-credentials@v5
+      - uses: actions/checkout@v7
+      - run: zip -j lambda.zip src/lambda/nhl-api.js src/lambda/package.json
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: us-east-1
-      - run: ./aws-update-lambda.sh
+      # AWS blocks code updates on old runtimes, so set the runtime first
+      - name: Update runtime and settings
+        run: |
+          aws lambda update-function-configuration --function-name "$FUNCTION_NAME" \
+            --runtime "$RUNTIME" --handler nhl-api.handler --timeout 5 --memory-size 128 \
+            --output text --query LastUpdateStatus
+          aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+      - name: Update code
+        run: |
+          aws lambda update-function-code --function-name "$FUNCTION_NAME" \
+            --zip-file fileb://lambda.zip \
+            --output text --query LastUpdateStatus
+          aws lambda wait function-updated --function-name "$FUNCTION_NAME"
       - name: Smoke test
         run: |
           curl -sSf "https://nhl.andrewmacheret.com/games?team=sharks" | tee /dev/stderr | jq -e '.games'
