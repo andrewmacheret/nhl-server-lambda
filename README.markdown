@@ -1,6 +1,6 @@
 # NHL API server using Node.js and AWS Lambda
 
-[![License](https://img.shields.io/badge/license-MIT-lightgray.svg)](https://github.com/andrewmacheret/nhl-server-lambda/blob/master/LICENSE.md)
+[![Test and deploy](https://github.com/andrewmacheret/nhl-server-lambda/actions/workflows/deploy.yml/badge.svg)](https://github.com/andrewmacheret/nhl-server-lambda/actions/workflows/deploy.yml) [![License](https://img.shields.io/badge/license-MIT-lightgray.svg)](https://github.com/andrewmacheret/nhl-server-lambda/blob/master/LICENSE.md)
 
 Back-end server for [andrewmacheret/nhl-client](https://github.com/andrewmacheret/nhl-client). Schedules come from the NHL API at `api-web.nhle.com`.
 
