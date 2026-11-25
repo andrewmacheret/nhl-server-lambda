@@ -11,9 +11,9 @@ See [andrewmacheret/nhl-server](https://github.com/andrewmacheret/nhl-server) fo
 - `GET /games?team=sharks&date=2026-11-21` returns that day's games for the team (with scores once they start), the team's record, its next game, and a list of all teams. `team` can be a name, city or abbreviation, like `maple leafs`, `toronto` or `tor`. `date` defaults to today in Pacific time.
 - `GET /calendar?team=sharks` returns an iCalendar feed of the team's games from last season and this season. Subscribe to it with `webcal://nhl.andrewmacheret.com/calendar?team=sharks`.
 
-- `GET /healthcheck` calls the NHL API's standings and schedule right now and returns `{"status": "ok", "checks": [...]}`, with HTTP 503 and `"status": "fail"` when either call fails. The Canary workflow (`.github/workflows/canary.yml`) checks it once a day, started by [andrewmacheret/canary](https://github.com/andrewmacheret/canary).
+Once a day, the Canary workflow (`.github/workflows/canary.yml`) checks that the NHL API's standings and schedule still answer. It's started by [andrewmacheret/canary](https://github.com/andrewmacheret/canary).
 
-In API Gateway, `/games` uses a mapping template that turns the query string into the Lambda event. `/calendar` and `/healthcheck` use a Lambda proxy integration instead, so the Lambda can return its own content type and status code.
+In API Gateway, `/games` uses a mapping template that turns the query string into the Lambda event. `/calendar` and the canary's health check use a Lambda proxy integration instead, so the Lambda can return its own content type and status code.
 
 ## Development
 
