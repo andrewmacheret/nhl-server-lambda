@@ -50,8 +50,8 @@ function seasonId(startYear) {
 }
 
 // Standings as of a past date, or 'now'
-async function loadStandings(day) {
-  return callNhlApi(`/standings/${day}`, day === 'now' ? hourMs : 24 * hourMs,
+async function loadStandings(day, ttlMs = day === 'now' ? hourMs : 24 * hourMs) {
+  return callNhlApi(`/standings/${day}`, ttlMs,
     (standings) => standings.standings.map((team) => ({
       id: normalizeName(team.teamCommonName.default),
       abbrev: team.teamAbbrev.default,
@@ -95,9 +95,8 @@ async function loadRecord(abbrev, date) {
   return team ? { record: team.record, points: team.points, streak: team.streak } : { record: null, points: null, streak: null };
 }
 
-async function loadGames(date) {
-  // Today's games can be live, so keep the cache short for them
-  const ttlMs = date === todayInLA() ? minuteMs : 10 * minuteMs;
+// Today's games can be live, so keep the cache short for them
+async function loadGames(date, ttlMs = date === todayInLA() ? minuteMs : 10 * minuteMs) {
   return callNhlApi(`/schedule/${date}`, ttlMs, (schedule) => {
     const day = schedule.gameWeek.find((d) => d.date === date);
     return day ? day.games : [];
@@ -343,9 +342,41 @@ async function proxyHandler(event) {
   }
 }
 
+async function runCheck(name, check) {
+  try {
+    return { name, ok: true, detail: await check() };
+  } catch (err) {
+    return { name, ok: false, detail: err.message };
+  }
+}
+
+// GET /healthcheck, for the daily canary (github.com/andrewmacheret/canary)
+// It skips the cache so it always asks the NHL API right now
+async function healthcheck() {
+  const checks = await Promise.all([
+    runCheck('NHL standings', async () => {
+      const teams = await loadStandings('now', 0);
+      if (!teams.length) throw new Error('no teams in the standings');
+      return `${teams.length} teams`;
+    }),
+    runCheck('NHL schedule', async () => `${(await loadGames(todayInLA(), 0)).length} games today`)
+  ]);
+  const ok = checks.every((c) => c.ok);
+  return {
+    statusCode: ok ? 200 : 503,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': 'https://andrewmacheret.com'
+    },
+    body: JSON.stringify({ status: ok ? 'ok' : 'fail', checks })
+  };
+}
+
 // API Gateway picks the HTTP status from the "400: " or "502: " prefix
 // and sends back only the message, without the stack trace
 exports.handler = async (event) => {
+  if (event.resource === '/healthcheck') return healthcheck();
   if (event.requestContext) return proxyHandler(event);
   try {
     return await exports.api(event);

@@ -1,6 +1,6 @@
 # NHL API server using Node.js and AWS Lambda
 
-[![Test and deploy](https://github.com/andrewmacheret/nhl-server-lambda/actions/workflows/deploy.yml/badge.svg)](https://github.com/andrewmacheret/nhl-server-lambda/actions/workflows/deploy.yml) [![License](https://img.shields.io/badge/license-MIT-lightgray.svg)](https://github.com/andrewmacheret/nhl-server-lambda/blob/master/LICENSE.md)
+[![Test and deploy](https://github.com/andrewmacheret/nhl-server-lambda/actions/workflows/deploy.yml/badge.svg)](https://github.com/andrewmacheret/nhl-server-lambda/actions/workflows/deploy.yml) [![Canary](https://github.com/andrewmacheret/nhl-server-lambda/actions/workflows/canary.yml/badge.svg)](https://github.com/andrewmacheret/nhl-server-lambda/actions/workflows/canary.yml) [![License](https://img.shields.io/badge/license-MIT-lightgray.svg)](https://github.com/andrewmacheret/nhl-server-lambda/blob/master/LICENSE.md)
 
 Back-end server for [andrewmacheret/nhl-client](https://github.com/andrewmacheret/nhl-client). Schedules come from the NHL API at `api-web.nhle.com`.
 
@@ -11,7 +11,9 @@ See [andrewmacheret/nhl-server](https://github.com/andrewmacheret/nhl-server) fo
 - `GET /games?team=sharks&date=2026-11-21` returns that day's games for the team (with scores once they start), the team's record, its next game, and a list of all teams. `team` can be a name, city or abbreviation, like `maple leafs`, `toronto` or `tor`. `date` defaults to today in Pacific time.
 - `GET /calendar?team=sharks` returns an iCalendar feed of the team's games from last season and this season. Subscribe to it with `webcal://nhl.andrewmacheret.com/calendar?team=sharks`.
 
-In API Gateway, `/games` uses a mapping template that turns the query string into the Lambda event. `/calendar` uses a Lambda proxy integration instead, so the Lambda can return the `text/calendar` content type itself.
+- `GET /healthcheck` calls the NHL API's standings and schedule right now and returns `{"status": "ok", "checks": [...]}`, with HTTP 503 and `"status": "fail"` when either call fails. The Canary workflow (`.github/workflows/canary.yml`) checks it once a day, started by [andrewmacheret/canary](https://github.com/andrewmacheret/canary).
+
+In API Gateway, `/games` uses a mapping template that turns the query string into the Lambda event. `/calendar` and `/healthcheck` use a Lambda proxy integration instead, so the Lambda can return its own content type and status code.
 
 ## Development
 

@@ -112,6 +112,28 @@ test('calendar through API Gateway with a bad team', async () => {
   assert.strictEqual(response.body, `team not found: 'nope'\n`);
 });
 
+test('healthcheck', async () => {
+  const response = await handler({ requestContext: {}, resource: '/healthcheck' });
+  assert.strictEqual(response.statusCode, 200);
+  const body = JSON.parse(response.body);
+  assert.strictEqual(body.status, 'ok');
+  assert.deepStrictEqual(body.checks.map((c) => c.name), ['NHL standings', 'NHL schedule']);
+});
+
+test('healthcheck says which NHL API call is broken', async (t) => {
+  const realFetch = global.fetch;
+  t.mock.method(global, 'fetch', async (url, options) => {
+    if (url.includes('/schedule/')) return { ok: false, status: 503 };
+    return realFetch(url, options);
+  });
+  const response = await handler({ requestContext: {}, resource: '/healthcheck' });
+  assert.strictEqual(response.statusCode, 503);
+  const body = JSON.parse(response.body);
+  assert.strictEqual(body.status, 'fail');
+  assert.deepStrictEqual(body.checks.map((c) => c.ok), [true, false]);
+  assert.match(body.checks[1].detail, /^NHL API returned 503 for \/schedule\//);
+});
+
 const errorCases = [
   [{ action: 'myTeamToday' }, `'team' must be specified`],
   [{ action: 'myTeamToday', team: 'sharks!' }, `team must be a team name, city or abbreviation, such as 'sharks', 'maple leafs' or 'sjs', was: 'sharks!'`],
