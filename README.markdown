@@ -23,4 +23,4 @@ Run tests with `cd src/lambda && npm test` (needs Node.js 24). They call the rea
 
 Pushes to `master` run the tests and deploy to the `NHLServer` AWS Lambda function through GitHub Actions (see `.github/workflows/deploy.yml`). To redeploy without a code change, use "Run workflow" on the Actions tab.
 
-The workflow signs in to AWS with GitHub OIDC using the IAM role in the `AWS_ROLE_ARN` repo variable. The Lambda sits behind AWS API Gateway at `nhl.andrewmacheret.com`.
+The workflow signs in to AWS with GitHub OIDC using the IAM role in the `AWS_ROLE_ARN` repo variable. The Lambda sits behind AWS API Gateway at `nhl.andrewmacheret.com`. The `live` stage's settings, which aren't in git, limit it to 20 requests a second with bursts of 40.
