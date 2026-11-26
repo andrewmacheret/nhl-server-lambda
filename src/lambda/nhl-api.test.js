@@ -135,6 +135,23 @@ test('healthcheck says which NHL API call is broken', async (t) => {
   assert.match(body.checks[1].detail, /^NHL API returned 503 for \/schedule\//);
 });
 
+test('off-season standings fall back to now', async (t) => {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date());
+  const realFetch = global.fetch;
+  const urls = [];
+  t.mock.method(global, 'fetch', async (url, options) => {
+    urls.push(url);
+    if (url.endsWith(`/standings/${today}`)) return { ok: true, json: async () => ({ standings: [] }) };
+    return realFetch(url, options);
+  });
+  const response = await handler({ requestContext: {}, resource: '/healthcheck' });
+  assert.strictEqual(JSON.parse(response.body).checks[0].detail, '32 teams');
+  assert.ok(urls.some((url) => url.endsWith('/standings/now')));
+  t.mock.restoreAll();
+  // put today's real standings back in the cache for the other tests
+  await handler({ requestContext: {}, resource: '/healthcheck' });
+});
+
 const errorCases = [
   [{ action: 'myTeamToday' }, `'team' must be specified`],
   [{ action: 'myTeamToday', team: 'sharks!' }, `team must be a team name, city or abbreviation, such as 'sharks', 'maple leafs' or 'sjs', was: 'sharks!'`],

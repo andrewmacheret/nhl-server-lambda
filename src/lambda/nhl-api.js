@@ -8,23 +8,31 @@ const cache = {};
 // Errors caused by bad input, sent back as a 400 instead of a 502
 class BadRequestError extends Error {}
 
-// transform shrinks the NHL response before it goes in the cache
-async function callNhlApi(path, ttlMs, transform = (data) => data) {
-  const cached = cache[path];
-  if (cached && Date.now() - cached.time < ttlMs) return cached.data;
-
+async function fetchNhlApi(path, transform) {
   const url = nhlApiUrl + path;
   console.log(`calling url: ${url}`);
   const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
   if (!response.ok) {
     throw new Error(`NHL API returned ${response.status} for ${path}`);
   }
-  const data = transform(await response.json());
+  return transform(await response.json());
+}
+
+// transform shrinks the NHL response before it goes in the cache
+function callNhlApi(path, ttlMs, transform = (data) => data) {
+  const cached = cache[path];
+  if (cached && Date.now() - cached.time < ttlMs) return cached.data;
+
   // Every past date gets its own entry, so start over once there are too many
   if (Object.keys(cache).length >= 100) {
     for (const key in cache) delete cache[key];
   }
+  // The cache holds the promise, so two lookups at once share one NHL call
+  const data = fetchNhlApi(path, transform);
   cache[path] = { time: Date.now(), data };
+  data.catch(() => {
+    if (cache[path] && cache[path].data === data) delete cache[path];
+  });
   return data;
 }
 
@@ -49,8 +57,8 @@ function seasonId(startYear) {
   return `${startYear}${startYear + 1}`;
 }
 
-// Standings as of a past date, or 'now'
-async function loadStandings(day, ttlMs = day === 'now' ? hourMs : 24 * hourMs) {
+// Standings as of a date, or 'now'. The last couple of days can still change, so cache those for an hour
+async function loadStandings(day, ttlMs = day === 'now' || Date.now() - Date.parse(day) < 2 * 24 * hourMs ? hourMs : 24 * hourMs) {
   return callNhlApi(`/standings/${day}`, ttlMs,
     (standings) => standings.standings.map((team) => ({
       id: normalizeName(team.teamCommonName.default),
@@ -65,8 +73,15 @@ async function loadStandings(day, ttlMs = day === 'now' ? hourMs : 24 * hourMs) 
     })));
 }
 
+// Asking for today's date skips the NHL API's redirect from /standings/now.
+// Off-season dates have no standings, so fall back to 'now' for those
+async function loadCurrentStandings(ttlMs) {
+  const teams = await loadStandings(todayInLA(), ttlMs);
+  return teams.length ? teams : loadStandings('now', ttlMs);
+}
+
 async function loadTeams() {
-  return loadStandings('now');
+  return loadCurrentStandings();
 }
 
 async function findTeam(team) {
@@ -85,12 +100,15 @@ async function findTeam(team) {
   return { found, teams };
 }
 
-// The record as of a past date, or today's for today and later
-async function loadRecord(abbrev, date) {
-  const standings = await loadStandings(date < todayInLA() ? date : 'now').catch((err) => {
+// The standings as of a past date, or today's for today and later
+async function standingsOn(date) {
+  return (date < todayInLA() ? loadStandings(date) : loadCurrentStandings()).catch((err) => {
     console.log(`no standings for ${date}:`, err.message);
     return [];
   });
+}
+
+function recordIn(standings, abbrev) {
   const team = standings.find((t) => t.abbrev === abbrev);
   return team ? { record: team.record, points: team.points, streak: team.streak } : { record: null, points: null, streak: null };
 }
@@ -185,15 +203,18 @@ function checkDate(date) {
 }
 
 async function myTeamToday(team, date) {
-  const { found, teams } = await findTeam(team);
   date = date || todayInLA();
   checkDate(date);
 
-  const [dayGames, record, next] = await Promise.all([
+  // The day's games and standings don't depend on the team, so load them while finding it
+  const teamFound = findTeam(team);
+  const [{ found, teams }, dayGames, standings, next] = await Promise.all([
+    teamFound,
     loadGames(date),
-    loadRecord(found.abbrev, date),
-    loadNextGame(found.abbrev, date)
+    standingsOn(date),
+    teamFound.then(({ found }) => loadNextGame(found.abbrev, date))
   ]);
+  const record = recordIn(standings, found.abbrev);
   const games = dayGames
     .filter((game) => game.homeTeam.abbrev === found.abbrev || game.awayTeam.abbrev === found.abbrev)
     .map((game) => toGame(game, found.abbrev, date));
@@ -359,7 +380,7 @@ async function runCheck(name, check) {
 async function healthcheck() {
   const checks = await Promise.all([
     runCheck('NHL standings', async () => {
-      const teams = await loadStandings('now', 0);
+      const teams = await loadCurrentStandings(0);
       if (!teams.length) throw new Error('no teams in the standings');
       return `${teams.length} teams`;
     }),
