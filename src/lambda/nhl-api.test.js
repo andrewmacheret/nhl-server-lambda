@@ -103,6 +103,7 @@ test('calendar through API Gateway', async () => {
   const response = await handler({ requestContext: {}, resource: '/calendar', queryStringParameters: { team: 'sharks' } });
   assert.strictEqual(response.statusCode, 200);
   assert.strictEqual(response.headers['Content-Type'], 'text/calendar; charset=utf-8');
+  assert.strictEqual(response.headers['X-Robots-Tag'], 'noindex');
   assert.match(response.body, /^BEGIN:VCALENDAR/);
 });
 

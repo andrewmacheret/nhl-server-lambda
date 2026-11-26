@@ -13,7 +13,7 @@ See [andrewmacheret/nhl-server](https://github.com/andrewmacheret/nhl-server) fo
 
 Once a day, the Canary workflow (`.github/workflows/canary.yml`) checks that the NHL API's standings and schedule still answer. It's started by [andrewmacheret/canary](https://github.com/andrewmacheret/canary).
 
-In API Gateway, `/games` uses a mapping template that turns the query string into the Lambda event. `/calendar` and the canary's health check use a Lambda proxy integration instead, so the Lambda can return its own content type and status code.
+In API Gateway, `/games` uses a mapping template that turns the query string into the Lambda event. `/calendar` and the canary's health check use a Lambda proxy integration instead, so the Lambda can return its own content type and status code. Every route sends `X-Robots-Tag: noindex` so Google doesn't list the API. The Lambda sets it for the proxy routes, and the API Gateway integration responses set it for `/` and `/games`.
 
 ## Development
 

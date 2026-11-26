@@ -322,6 +322,10 @@ exports.api = async (event) => {
   }
 };
 
+// Keeps Google from listing the API in search results
+// API Gateway adds it for / and /games, which don't use the proxy integration
+const NOINDEX = { 'X-Robots-Tag': 'noindex' };
+
 // Routes that API Gateway passes through whole (Lambda proxy integration)
 const proxyActions = { '/calendar': 'calendar' };
 
@@ -330,13 +334,13 @@ async function proxyHandler(event) {
     const body = await exports.api({ ...event.queryStringParameters, action: proxyActions[event.resource] });
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'public, max-age=3600' },
+      headers: { ...NOINDEX, 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'public, max-age=3600' },
       body
     };
   } catch (err) {
     return {
       statusCode: err instanceof BadRequestError ? 400 : 502,
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      headers: { ...NOINDEX, 'Content-Type': 'text/plain; charset=utf-8' },
       body: `${err.message}\n`
     };
   }
@@ -365,6 +369,7 @@ async function healthcheck() {
   return {
     statusCode: ok ? 200 : 503,
     headers: {
+      ...NOINDEX,
       'Content-Type': 'application/json',
       'Cache-Control': 'no-store',
       'Access-Control-Allow-Origin': 'https://andrewmacheret.com'
